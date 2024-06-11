@@ -13,8 +13,14 @@ RUN npm install
 # Copy the rest of the application code to the container
 COPY . .
 
+# Rebuild bcrypt for the correct environment
+RUN npm rebuild bcrypt --build-from-source
+
+# Ensure nodemon is globally installed and has correct permissions
+RUN npm install -g nodemon && chmod +x /usr/local/bin/nodemon
+
 # Expose the port on which your application runs
-EXPOSE 5000
+EXPOSE 5005
 
 # Set environment variables
 ENV NODE_ENV=production

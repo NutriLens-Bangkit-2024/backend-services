@@ -6,7 +6,7 @@ const noAuthRoutes = require('./user/noAuthRoutes');
 const userRoutes = require('./user/routes');
 
 const JWT_SECRET = process.env.JWT_SECRET;
-const PORT = process.env.PORT || 5000; // Use the PORT environment variable or default to 5000
+const PORT = process.env.PORT || 5005; // Use the PORT environment variable or default to 5000
 
 const init = async () => {
     const server = Hapi.server({
