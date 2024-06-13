@@ -122,7 +122,6 @@ const loginHandler = async (request, h) => {
             aud: 'urn:audience:test',
             iss: 'urn:issuer:test',
             sub: userData.id, // Use user ID as the subject
-            exp: Math.floor(new Date().getTime() / 1000) + 24 * 60 * 60 // 24 hours expiration
         },
         {
             key: JWT_SECRET,
