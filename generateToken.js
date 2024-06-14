@@ -13,7 +13,7 @@ const payload = {
 };
 
 // Generate the token with a 4-hour expiration time
-const token = jwt.sign(payload, secretKey, { expiresIn: '4h' });
+const token = jwt.sign(payload, secretKey);
 
 // Output the generated token
 console.log('Generated JWT Token:', token);
