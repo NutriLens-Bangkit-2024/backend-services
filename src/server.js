@@ -29,8 +29,7 @@ const init = async () => {
             iss: 'urn:issuer:test',
             sub: false,
             nbf: true,
-            exp: true,
-            maxAgeSec: 24 * 60 * 60,
+            exp: false,
             timeSkewSec: 15
         },
         validate: (artifacts, request, h) => {
