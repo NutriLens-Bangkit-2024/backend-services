@@ -130,7 +130,7 @@ const loginHandler = async (request, h) => {
     );
 
     // Return success response with token
-    return h.response({ status: 'success', token }).code(200);
+    return h.response({ status: 'success', id : userData.id, token }).code(200);
 
   } catch (error) {
     console.error('Error in loginHandler:', error);
