@@ -213,10 +213,17 @@ async function getCaloriesHandler(request, h) {
           weeklyCalories[week] += calories;
       });
 
+      const sortedDailyCalories = Object.keys(dailyCalories)
+        .sort((a, b) => new Date(b) - new Date(a))
+        .reduce((obj, key) => {
+            obj[key] = dailyCalories[key];
+            return obj;
+        }, {});
+
       return h.response({
           status: 'success',
           message: 'Calories retrieved successfully',
-          data: { dailyCalories, weeklyCalories, totalCalories }
+          data: { sortedDailyCalories, weeklyCalories, totalCalories }
       }).code(200);
   } catch (error) {
       console.error('Error retrieving calories:', error);
