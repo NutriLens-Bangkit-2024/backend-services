@@ -188,6 +188,9 @@ async function getCaloriesHandler(request, h) {
       const weeklyCalories = {};
       let totalCalories = 0;
 
+      let earliestDate = null;
+      let latestDate = null;
+
       // Iterate over each document in the food collection
       foodSnapshot.forEach(doc => {
           const data = doc.data();
@@ -211,19 +214,37 @@ async function getCaloriesHandler(request, h) {
               weeklyCalories[week] = 0;
           }
           weeklyCalories[week] += calories;
+
+          // Determine the earliest and latest date
+          if (!earliestDate || date < earliestDate) {
+              earliestDate = date;
+          }
+          if (!latestDate || date > latestDate) {
+              latestDate = date;
+          }
       });
 
-      const sortedDailyCalories = Object.keys(dailyCalories)
-        .sort((a, b) => new Date(b) - new Date(a))
-        .reduce((obj, key) => {
-            obj[key] = dailyCalories[key];
-            return obj;
-        }, {});
+      // Ensure the date range covers the last 14 days from the latest date
+      const last14DaysCalories = {};
+      const currentDate = new Date(latestDate);
+      for (let i = 0; i < 14; i++) {
+          const dayKey = currentDate.toDateString();
+          last14DaysCalories[dayKey] = dailyCalories[dayKey] || 0;
+          currentDate.setDate(currentDate.getDate() - 1);
+      }
+
+      // Sort daily calories by date from newest to oldest
+      const sortedDailyCalories = Object.keys(last14DaysCalories)
+          .sort((a, b) => new Date(b) - new Date(a))
+          .reduce((obj, key) => {
+              obj[key] = last14DaysCalories[key];
+              return obj;
+          }, {});
 
       return h.response({
           status: 'success',
           message: 'Calories retrieved successfully',
-          data: { sortedDailyCalories, weeklyCalories, totalCalories }
+          data: { dailyCalories: sortedDailyCalories, weeklyCalories, totalCalories }
       }).code(200);
   } catch (error) {
       console.error('Error retrieving calories:', error);
@@ -235,11 +256,10 @@ async function getCaloriesHandler(request, h) {
   }
 }
 
-// Helper function to get the week number from a date
+// Function to get the week number from a date
 function getWeekNumber(date) {
-  const startOfYear = new Date(date.getFullYear(), 0, 1);
-  const pastDaysOfYear = (date - startOfYear) / 86400000;
-  return Math.ceil((pastDaysOfYear + startOfYear.getDay() + 1) / 7);
+  const startDate = new Date(date.getFullYear(), 0, 1);
+  const days = Math.floor((date - startDate) / (24 * 60 * 60 * 1000));
+  return Math.ceil((date.getDay() + 1 + days) / 7);
 }
-
 module.exports = {getAllNewsHandler, getNewsHandler, getAllRecipesHandler, getRecipeHandler, getCaloriesHandler, postPredictHandler};
