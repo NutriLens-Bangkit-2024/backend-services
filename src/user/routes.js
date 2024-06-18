@@ -10,7 +10,7 @@ const routes = [
       }
     },
     {
-      method: 'PUT',
+      method: 'PATCH',
       path: '/user/{id}',
       handler: editUserByIdHandler,
       options :{
