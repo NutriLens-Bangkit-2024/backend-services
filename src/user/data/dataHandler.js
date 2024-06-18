@@ -126,13 +126,15 @@ const postPredictHandler = async (request, h) => {
 
   const { label, calories } = request.payload;
   const id = crypto.randomUUID();
-  const createdAt = new Date().toISOString();
+  const createdAt = new Date();
+  createdAt.setHours(createdAt.getHours() + 7);
+  const createdAtISO = createdAt.toISOString();
 
   const data = {
       id: id,
       label: label,
       calories: calories,
-      createdAt: createdAt
+      createdAt: createdAtISO
   };
 
   try {
@@ -183,68 +185,65 @@ async function getCaloriesHandler(request, h) {
       // Fetch all documents in the food collection
       const foodSnapshot = await foodCollectionRef.get();
 
-      // Initialize objects to store daily and weekly calories
+      // Initialize objects to store daily and total calories
       const dailyCalories = {};
-      const weeklyCalories = {};
       let totalCalories = 0;
-
-      let earliestDate = null;
-      let latestDate = null;
 
       // Iterate over each document in the food collection
       foodSnapshot.forEach(doc => {
           const data = doc.data();
-          const date = new Date(data.createdAt);
-          const dayKey = date.toDateString(); // Use date string as the key for daily calories
-          const week = getWeekNumber(date); // Get the week number from the date for weekly calories
+          const createdAt = data.createdAt; // Assuming createdAt is in format '2024-06-18T20:55:59.138Z'
+          const datePart = createdAt.split('T')[0]; // Extracts 'YYYY-MM-DD' from 'YYYY-MM-DDTHH:mm:ss.SSSZ'
 
           const calories = data.calories || 0;
 
           // Add calories to the total sum
           totalCalories += calories;
 
-          // Add calories to daily total
-          if (!dailyCalories[dayKey]) {
-              dailyCalories[dayKey] = 0;
+          // Add calories to daily total based on date part
+          if (!dailyCalories[datePart]) {
+              dailyCalories[datePart] = 0;
           }
-          dailyCalories[dayKey] += calories;
-
-          // Add calories to weekly total
-          if (!weeklyCalories[week]) {
-              weeklyCalories[week] = 0;
-          }
-          weeklyCalories[week] += calories;
-
-          // Determine the earliest and latest date
-          if (!earliestDate || date < earliestDate) {
-              earliestDate = date;
-          }
-          if (!latestDate || date > latestDate) {
-              latestDate = date;
-          }
+          dailyCalories[datePart] += calories;
       });
 
-      // Ensure the date range covers the last 14 days from the latest date
-      const last14DaysCalories = {};
-      const currentDate = new Date(latestDate);
-      for (let i = 0; i < 14; i++) {
-          const dayKey = currentDate.toDateString();
-          last14DaysCalories[dayKey] = dailyCalories[dayKey] || 0;
-          currentDate.setDate(currentDate.getDate() - 1);
-      }
-
-      // Sort daily calories by date from newest to oldest
-      const sortedDailyCalories = Object.keys(last14DaysCalories)
-          .sort((a, b) => new Date(b) - new Date(a))
+      // Prepare sorted daily calories from newest to oldest
+      const sortedDailyCalories = Object.keys(dailyCalories)
+          .sort((a, b) => new Date(b) - new Date(a)) // Sort keys (dates) in descending order
           .reduce((obj, key) => {
-              obj[key] = last14DaysCalories[key];
+              obj[key] = dailyCalories[key];
               return obj;
           }, {});
 
+      // Prepare the response with past 14 days data, setting days without data to 0
+      const today = new Date();
+      today.setHours(today.getHours() + 7); // Adjust timezone as needed
+
+      for (let i = 0; i < 14; i++) {
+          let date = new Date(today);
+          date.setDate(today.getDate() - i);
+          let formattedDate = date.toISOString().split('T')[0];
+
+          if (!sortedDailyCalories[formattedDate]) {
+              sortedDailyCalories[formattedDate] = 0;
+          }
+      }
+
+      // Sort sortedDailyCalories by date (newest to oldest)
+      const sortedDailyCaloriesArray = Object.keys(sortedDailyCalories)
+          .map(key => ({ date: key, calories: sortedDailyCalories[key] }))
+          .sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort by date in descending order
+
+      const sortedDailyCaloriesFinal = sortedDailyCaloriesArray.reduce((obj, item) => {
+          obj[item.date] = item.calories;
+          return obj;
+      }, {});
+
+      // Prepare the response
       return h.response({
           status: 'success',
           message: 'Calories retrieved successfully',
-          data: { dailyCalories: sortedDailyCalories, weeklyCalories, totalCalories }
+          data: { dailyCalories: sortedDailyCaloriesFinal, totalCalories }
       }).code(200);
   } catch (error) {
       console.error('Error retrieving calories:', error);
@@ -256,10 +255,4 @@ async function getCaloriesHandler(request, h) {
   }
 }
 
-// Function to get the week number from a date
-function getWeekNumber(date) {
-  const startDate = new Date(date.getFullYear(), 0, 1);
-  const days = Math.floor((date - startDate) / (24 * 60 * 60 * 1000));
-  return Math.ceil((date.getDay() + 1 + days) / 7);
-}
 module.exports = {getAllNewsHandler, getNewsHandler, getAllRecipesHandler, getRecipeHandler, getCaloriesHandler, postPredictHandler};
