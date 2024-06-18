@@ -1,6 +1,7 @@
 const path = require('path');
 const db = require('../../firebase');
 const crypto = require('crypto');
+const { format, parseISO } = require('date-fns');
 
 
 const getAllNewsHandler = async () => {
@@ -231,13 +232,20 @@ async function getCaloriesHandler(request, h) {
 
       // Sort sortedDailyCalories by date (newest to oldest)
       const sortedDailyCaloriesArray = Object.keys(sortedDailyCalories)
-          .map(key => ({ date: key, calories: sortedDailyCalories[key] }))
-          .sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort by date in descending order
-
-      const sortedDailyCaloriesFinal = sortedDailyCaloriesArray.reduce((obj, item) => {
-          obj[item.date] = item.calories;
-          return obj;
-      }, {});
+      .map(key => ({ date: key, calories: sortedDailyCalories[key] }))
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    // Format the dates in the desired format while creating formattedDailyCalories
+    const formattedDailyCalories = sortedDailyCaloriesArray.map(item => ({
+      date: format(parseISO(item.date), 'EEE MMM dd yyyy'), // Format the date
+      calories: item.calories
+    }));
+    
+    // Create sortedDailyCaloriesFinal in the required format with formatted dates
+    const sortedDailyCaloriesFinal = formattedDailyCalories.reduce((obj, item) => {
+      obj[item.date] = item.calories;
+      return obj;
+    }, {});
 
       // Prepare the response
       return h.response({
@@ -254,5 +262,7 @@ async function getCaloriesHandler(request, h) {
       }).code(500);
   }
 }
+
+
 
 module.exports = {getAllNewsHandler, getNewsHandler, getAllRecipesHandler, getRecipeHandler, getCaloriesHandler, postPredictHandler};
