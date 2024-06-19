@@ -154,9 +154,11 @@ const editUserByIdHandler = async (request, h) => {
       };
     }
 
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     await userRef.update({
       email,
-      password,
+      password : hashedPassword,
       name,
       profileurl,
       updatedAt : updatedAt,
